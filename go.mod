@@ -1,4 +1,4 @@
-module github.com/fuku710/gh-todays-commit
+module github.com/fuku710/gh-todays-pr
 
 go 1.18
 
