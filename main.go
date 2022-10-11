@@ -51,13 +51,13 @@ func main() {
 
 	now := time.Now()
 
-	events, err := GetPushEventsIn24hors(client, now)
+	events, err := getPushEventsIn24hors(client, now)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	pulls, err := GetPushedPullRequests(client, events)
+	pulls, err := getPushedPullRequests(client, events)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -68,7 +68,7 @@ func main() {
 	}
 }
 
-func GetPushEventsIn24hors(client api.RESTClient, now time.Time) ([]PushEvent, error) {
+func getPushEventsIn24hors(client api.RESTClient, now time.Time) ([]PushEvent, error) {
 	user := struct{ Login string }{}
 	err := client.Get("user", &user)
 	if err != nil {
@@ -99,7 +99,7 @@ func GetPushEventsIn24hors(client api.RESTClient, now time.Time) ([]PushEvent, e
 	return pushEvents, nil
 }
 
-func GetPushedPullRequests(client api.RESTClient, events []PushEvent) ([]PullRequest, error) {
+func getPushedPullRequests(client api.RESTClient, events []PushEvent) ([]PullRequest, error) {
 	reRef := regexp.MustCompile("refs/heads/(.*)")
 	reRepoName := regexp.MustCompile("(.*)/(.*)")
 
