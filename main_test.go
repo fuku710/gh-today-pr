@@ -6,27 +6,28 @@ import (
 	"time"
 )
 
-func TestIn24hours(t *testing.T) {
+func TestIsToday(t *testing.T) {
 	tests := []struct {
 		now    time.Time
 		target time.Time
 		want   bool
 	}{
-		{now: ParseTime("2022-01-03T00:00:00"), target: ParseTime("2022-01-01T23:59:59"), want: false},
-		{now: ParseTime("2022-01-03T00:00:00"), target: ParseTime("2022-01-02T00:00:00"), want: true},
+		{now: parseTime("2022-01-02T17:00:00+09:00"), target: parseTime("2022-01-01T23:59:59+09:00"), want: false},
+		{now: parseTime("2022-01-02T17:00:00+09:00"), target: parseTime("2022-01-02T00:00:00+09:00"), want: true},
+		{now: parseTime("2022-01-02T17:00:00+09:00"), target: parseTime("2022-01-01T14:59:59Z"), want: false},
+		{now: parseTime("2022-01-02T17:00:00+09:00"), target: parseTime("2022-01-01T15:00:00Z"), want: true},
 	}
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("now:%s, target:%s", tt.now.String(), tt.target.String()), func(t *testing.T) {
-			got := In24hours(tt.now, tt.target)
+			got := IsToday(tt.now, tt.target)
 			if got != tt.want {
-				t.Errorf("In24Hours() = %t; want true", tt.want)
+				t.Errorf("IsTarget() = %t; want %t", got, tt.want)
 			}
 		})
 	}
-
 }
 
-func ParseTime(s string) time.Time {
-	t, _ := time.Parse("2006-01-02T15:04:05", s)
+func parseTime(s string) time.Time {
+	t, _ := time.Parse(time.RFC3339, s)
 	return t
 }

@@ -83,7 +83,7 @@ func getPushEventsIn24hors(client api.RESTClient, now time.Time) ([]PushEvent, e
 
 	pushEvents := []PushEvent{}
 	for _, e := range events {
-		if !In24hours(now, e.CreatedAt) {
+		if !IsToday(now, e.CreatedAt) {
 			break
 		}
 		if e.Type == "PushEvent" {
@@ -122,6 +122,7 @@ func getPushedPullRequests(client api.RESTClient, events []PushEvent) ([]PullReq
 	return pulls, nil
 }
 
-func In24hours(now time.Time, target time.Time) bool {
-	return !target.Before(now.Add(time.Hour * -24))
+func IsToday(now time.Time, target time.Time) bool {
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
+	return !target.Before(today)
 }
