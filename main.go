@@ -41,8 +41,6 @@ type PullRequest struct {
 }
 
 func main() {
-	fmt.Printf("Today's PullRequests!\n\n")
-
 	client, err := gh.RESTClient(nil)
 	if err != nil {
 		fmt.Println(err)
@@ -63,6 +61,11 @@ func main() {
 		return
 	}
 
+	fmt.Printf("🌞 %d/%d/%d 🌝\n", now.Year(), now.Month(), now.Day())
+	if len(pulls) == 0 {
+		fmt.Println("No Pull Requests")
+		return
+	}
 	for _, p := range pulls {
 		fmt.Printf("%s(%s)\n", p.Title, p.HtmlUrl)
 	}
