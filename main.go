@@ -86,6 +86,7 @@ func getPushEventsIn24hors(client api.RESTClient, now time.Time) ([]PushEvent, e
 
 	pushEvents := []PushEvent{}
 	for _, e := range events {
+
 		if !IsToday(now, e.CreatedAt) {
 			break
 		}
@@ -95,7 +96,10 @@ func getPushEventsIn24hors(client api.RESTClient, now time.Time) ([]PushEvent, e
 				Repo: e.Repo,
 			}
 			json.Unmarshal(e.Payload, &pushEvent.Payload)
-			pushEvents = append(pushEvents, pushEvent)
+			// TODO: Use default branch instead of master
+			if pushEvent.Payload.Ref != "refs/heads/master" {
+				pushEvents = append(pushEvents, pushEvent)
+			}
 		}
 	}
 
