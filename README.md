@@ -1,4 +1,4 @@
-# todays-pr
+# today-pr
 
 The GitHub CLI extension that list your commited Pull Request of the day.
 
