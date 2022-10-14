@@ -1,9 +1,9 @@
 # todays-pr
 
-The GitHub CLI extension that list your commited in 24 hours PullRequest.
+The GitHub CLI extension that list your commited Pull Request of the day.
 
 ## Installation
 
 ```
-gh extension install fuku710/gh-todays-pr
+gh extension install fuku710/gh-today-pr
 ```
