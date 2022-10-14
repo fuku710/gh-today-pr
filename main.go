@@ -71,22 +71,21 @@ func main() {
 	}
 }
 
-func getPushEvents(client api.RESTClient, now time.Time) ([]PushEvent, error) {
+func getPushEvents(client api.RESTClient, now time.Time) (map[string]PushEvent, error) {
 	user := struct{ Login string }{}
 	err := client.Get("user", &user)
 	if err != nil {
-		return []PushEvent{}, err
+		return map[string]PushEvent{}, err
 	}
 
 	events := []Event{}
 	err = client.Get(fmt.Sprintf("users/%s/events", user.Login), &events)
 	if err != nil {
-		return []PushEvent{}, err
+		return map[string]PushEvent{}, err
 	}
 
-	pushEvents := []PushEvent{}
+	pushEvents := map[string]PushEvent{}
 	for _, e := range events {
-
 		if !IsToday(now, e.CreatedAt) {
 			break
 		}
@@ -98,7 +97,7 @@ func getPushEvents(client api.RESTClient, now time.Time) ([]PushEvent, error) {
 			json.Unmarshal(e.Payload, &pushEvent.Payload)
 			// TODO: Use default branch instead of master
 			if pushEvent.Payload.Ref != "refs/heads/master" {
-				pushEvents = append(pushEvents, pushEvent)
+				pushEvents[pushEvent.Repo.Name] = pushEvent
 			}
 		}
 	}
@@ -106,7 +105,7 @@ func getPushEvents(client api.RESTClient, now time.Time) ([]PushEvent, error) {
 	return pushEvents, nil
 }
 
-func getPullRequests(client api.RESTClient, events []PushEvent) ([]PullRequest, error) {
+func getPullRequests(client api.RESTClient, events map[string]PushEvent) ([]PullRequest, error) {
 	reRef := regexp.MustCompile("refs/heads/(.*)")
 	reRepoName := regexp.MustCompile("(.*)/(.*)")
 
