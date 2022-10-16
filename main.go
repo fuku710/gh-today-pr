@@ -95,8 +95,17 @@ func getPushEvents(client api.RESTClient, now time.Time) (map[string]PushEvent, 
 				Repo: e.Repo,
 			}
 			json.Unmarshal(e.Payload, &pushEvent.Payload)
-			// TODO: Use default branch instead of master
-			if pushEvent.Payload.Ref != "refs/heads/master" {
+
+			repo := struct {
+				DefeaultBranch string `json:"default_branch"`
+			}{}
+			err := client.Get(fmt.Sprintf("repos/%s", e.Repo.Name), &repo)
+			if err != nil {
+				return map[string]PushEvent{}, err
+			}
+
+			ref := fmt.Sprintf("refs/heads/%s", repo.DefeaultBranch)
+			if pushEvent.Payload.Ref != ref {
 				pushEvents[pushEvent.Repo.Name] = pushEvent
 			}
 		}
