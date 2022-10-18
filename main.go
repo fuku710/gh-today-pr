@@ -106,7 +106,7 @@ func getPushEvents(client api.RESTClient, now time.Time) (map[string]PushEvent, 
 
 			ref := fmt.Sprintf("refs/heads/%s", repo.DefeaultBranch)
 			if pushEvent.Payload.Ref != ref {
-				pushEvents[pushEvent.Repo.Name] = pushEvent
+				pushEvents[pushEvent.Payload.Ref] = pushEvent
 			}
 		}
 	}
