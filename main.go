@@ -79,34 +79,41 @@ func getPushEvents(client api.RESTClient, now time.Time) (map[string]PushEvent, 
 	}
 
 	events := []Event{}
-	err = client.Get(fmt.Sprintf("users/%s/events", user.Login), &events)
-	if err != nil {
-		return map[string]PushEvent{}, err
-	}
-
 	pushEvents := map[string]PushEvent{}
-	for _, e := range events {
-		if !IsToday(now, e.CreatedAt) {
+
+	for page := 1; ; page++ {
+		err = client.Get(fmt.Sprintf("users/%s/events?per_page=100&page=%d", user.Login, page), &events)
+		if err != nil {
+			return map[string]PushEvent{}, err
+		}
+		if len(events) <= 0 {
 			break
 		}
-		if e.Type == "PushEvent" {
-			pushEvent := PushEvent{
-				Type: e.Type,
-				Repo: e.Repo,
-			}
-			json.Unmarshal(e.Payload, &pushEvent.Payload)
 
-			repo := struct {
-				DefeaultBranch string `json:"default_branch"`
-			}{}
-			err := client.Get(fmt.Sprintf("repos/%s", e.Repo.Name), &repo)
-			if err != nil {
-				return map[string]PushEvent{}, err
+		for _, e := range events {
+			if !IsToday(now, e.CreatedAt) {
+				return pushEvents, nil
 			}
 
-			ref := fmt.Sprintf("refs/heads/%s", repo.DefeaultBranch)
-			if pushEvent.Payload.Ref != ref {
-				pushEvents[pushEvent.Payload.Ref] = pushEvent
+			if e.Type == "PushEvent" {
+				pushEvent := PushEvent{
+					Type: e.Type,
+					Repo: e.Repo,
+				}
+				json.Unmarshal(e.Payload, &pushEvent.Payload)
+
+				repo := struct {
+					DefeaultBranch string `json:"default_branch"`
+				}{}
+				err := client.Get(fmt.Sprintf("repos/%s", e.Repo.Name), &repo)
+				if err != nil {
+					return map[string]PushEvent{}, err
+				}
+
+				ref := fmt.Sprintf("refs/heads/%s", repo.DefeaultBranch)
+				if pushEvent.Payload.Ref != ref {
+					pushEvents[pushEvent.Payload.Ref] = pushEvent
+				}
 			}
 		}
 	}
