@@ -86,9 +86,6 @@ func getPushEvents(client api.RESTClient, now time.Time) (map[string]PushEvent, 
 		if err != nil {
 			return map[string]PushEvent{}, err
 		}
-		if len(events) <= 0 {
-			break
-		}
 
 		for _, e := range events {
 			if !IsToday(now, e.CreatedAt) {
@@ -115,6 +112,10 @@ func getPushEvents(client api.RESTClient, now time.Time) (map[string]PushEvent, 
 					pushEvents[pushEvent.Payload.Ref] = pushEvent
 				}
 			}
+		}
+
+		if len(events) < 100 {
+			break
 		}
 	}
 
