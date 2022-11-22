@@ -7,3 +7,11 @@ The GitHub CLI extension that list your commited Pull Request of the day.
 ```
 gh extension install fuku710/gh-today-pr
 ```
+
+## usage
+
+```cmd
+
+gh today-pr
+
+```
