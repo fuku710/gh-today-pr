@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"regexp"
 	"time"
 
@@ -19,20 +20,17 @@ type Event struct {
 	Payload   json.RawMessage
 }
 
-type PushEvent struct {
-	Type string
-	Repo struct {
-		Name string
+type PushEventPayload struct {
+	Ref     string
+	Head    string
+	Before  string
+	Commits []struct {
+		Url string
 	}
-	CreatedAt time.Time `json:"created_at"`
-	Payload   struct {
-		Ref     string
-		Head    string
-		Before  string
-		Commits []struct {
-			Url string
-		}
-	}
+}
+type CreateEventPayload struct {
+	Ref          string
+	MasterBranch string `json:"master_branch"`
 }
 
 type PullRequest struct {
@@ -43,22 +41,24 @@ type PullRequest struct {
 func main() {
 	client, err := gh.RESTClient(nil)
 	if err != nil {
-		fmt.Println(err)
-		return
+		log.Fatal(err)
 	}
 
 	now := time.Now()
 
-	events, err := getPushEvents(client, now)
+	events, err := getEvents(client, now)
 	if err != nil {
-		fmt.Println(err)
-		return
+		log.Fatal(err)
 	}
 
-	pulls, err := getPullRequests(client, events)
+	eventMap, err := mapEvents(client, events)
 	if err != nil {
-		fmt.Println(err)
-		return
+		log.Fatal(err)
+	}
+
+	pulls, err := getPullRequests(client, eventMap)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	fmt.Printf("🌞 %d/%d/%d 🌝\n", now.Year(), now.Month(), now.Day())
@@ -71,46 +71,29 @@ func main() {
 	}
 }
 
-func getPushEvents(client api.RESTClient, now time.Time) (map[string]PushEvent, error) {
+func getEvents(client api.RESTClient, now time.Time) ([]Event, error) {
 	user := struct{ Login string }{}
 	err := client.Get("user", &user)
 	if err != nil {
-		return map[string]PushEvent{}, err
+		return []Event{}, err
 	}
 
 	events := []Event{}
-	pushEvents := map[string]PushEvent{}
 
 	for page := 1; ; page++ {
-		err = client.Get(fmt.Sprintf("users/%s/events?per_page=100&page=%d", user.Login, page), &events)
+		res := []Event{}
+		err = client.Get(fmt.Sprintf("users/%s/events?per_page=100&page=%d", user.Login, page), &res)
 		if err != nil {
-			return map[string]PushEvent{}, err
+			return nil, err
 		}
 
-		for _, e := range events {
+		for _, e := range res {
+			// log.Printf("RepoName: %s,EventType: %s,CreatedAt: %s\n", e.Repo.Name, e.Type, e.CreatedAt.In(time.Local))
 			if !IsToday(now, e.CreatedAt) {
-				return pushEvents, nil
+				return events, nil
 			}
-
-			if e.Type == "PushEvent" {
-				pushEvent := PushEvent{
-					Type: e.Type,
-					Repo: e.Repo,
-				}
-				json.Unmarshal(e.Payload, &pushEvent.Payload)
-
-				repo := struct {
-					DefeaultBranch string `json:"default_branch"`
-				}{}
-				err := client.Get(fmt.Sprintf("repos/%s", e.Repo.Name), &repo)
-				if err != nil {
-					return map[string]PushEvent{}, err
-				}
-
-				ref := fmt.Sprintf("refs/heads/%s", repo.DefeaultBranch)
-				if pushEvent.Payload.Ref != ref {
-					pushEvents[pushEvent.Payload.Ref] = pushEvent
-				}
+			if e.Type == "PushEvent" || e.Type == "CreateEvent" {
+				events = append(events, e)
 			}
 		}
 
@@ -119,16 +102,59 @@ func getPushEvents(client api.RESTClient, now time.Time) (map[string]PushEvent, 
 		}
 	}
 
-	return pushEvents, nil
+	return events, nil
 }
 
-func getPullRequests(client api.RESTClient, events map[string]PushEvent) ([]PullRequest, error) {
+func mapEvents(client api.RESTClient, events []Event) (map[string]Event, error) {
+	eventMap := map[string]Event{}
+	for _, e := range events {
+		if e.Type == "PushEvent" {
+			payload := PushEventPayload{}
+			json.Unmarshal(e.Payload, &payload)
+
+			// Get default branch from repository of event
+			repo := struct {
+				DefeaultBranch string `json:"default_branch"`
+			}{}
+			err := client.Get(fmt.Sprintf("repos/%s", e.Repo.Name), &repo)
+			if err != nil {
+				return nil, err
+			}
+
+			ref := fmt.Sprintf("refs/heads/%s", repo.DefeaultBranch)
+			if payload.Ref != ref {
+				eventMap[payload.Ref] = e
+			}
+		}
+		if e.Type == "CreateEvent" {
+			payload := CreateEventPayload{}
+			json.Unmarshal(e.Payload, &payload)
+
+			ref := fmt.Sprintf("refs/heads/%s", payload.MasterBranch)
+			if payload.Ref != ref {
+				eventMap[payload.Ref] = e
+			}
+		}
+	}
+	return eventMap, nil
+}
+
+func getPullRequests(client api.RESTClient, events map[string]Event) ([]PullRequest, error) {
 	reRef := regexp.MustCompile("refs/heads/(.*)")
 	reRepoName := regexp.MustCompile("(.*)/(.*)")
 
 	pulls := []PullRequest{}
 	for _, e := range events {
-		branch := reRef.FindStringSubmatch(e.Payload.Ref)[1]
+		payload := struct {
+			Ref string
+		}{}
+		json.Unmarshal(e.Payload, &payload)
+		var branch string
+		if e.Type == "PushEvent" {
+			branch = reRef.FindStringSubmatch(payload.Ref)[1]
+		} else {
+			branch = payload.Ref
+		}
 		matches := reRepoName.FindStringSubmatch(e.Repo.Name)[1:3]
 		org := matches[0]
 		repo := matches[1]
