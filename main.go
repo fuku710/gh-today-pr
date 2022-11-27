@@ -88,7 +88,6 @@ func getEvents(client api.RESTClient, now time.Time) ([]Event, error) {
 		}
 
 		for _, e := range res {
-			// log.Printf("RepoName: %s,EventType: %s,CreatedAt: %s\n", e.Repo.Name, e.Type, e.CreatedAt.In(time.Local))
 			if !IsToday(now, e.CreatedAt) {
 				return events, nil
 			}
@@ -108,7 +107,8 @@ func getEvents(client api.RESTClient, now time.Time) ([]Event, error) {
 func mapEvents(client api.RESTClient, events []Event) (map[string]Event, error) {
 	eventMap := map[string]Event{}
 	for _, e := range events {
-		if e.Type == "PushEvent" {
+		switch e.Type {
+		case "PushEvent":
 			payload := PushEventPayload{}
 			json.Unmarshal(e.Payload, &payload)
 
@@ -125,8 +125,7 @@ func mapEvents(client api.RESTClient, events []Event) (map[string]Event, error) 
 			if payload.Ref != ref {
 				eventMap[payload.Ref] = e
 			}
-		}
-		if e.Type == "CreateEvent" {
+		case "CreateEvent":
 			payload := CreateEventPayload{}
 			json.Unmarshal(e.Payload, &payload)
 
