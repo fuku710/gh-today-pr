@@ -28,6 +28,7 @@ type PushEventPayload struct {
 		Url string
 	}
 }
+
 type CreateEventPayload struct {
 	Ref          string
 	MasterBranch string `json:"master_branch"`
@@ -105,7 +106,9 @@ func getEvents(client api.RESTClient, now time.Time) ([]Event, error) {
 }
 
 func mapEvents(client api.RESTClient, events []Event) (map[string]Event, error) {
-	re := regexp.MustCompile("Merge pull request")
+	reRef := regexp.MustCompile(`refs/heads/(.*)`)
+	reMergeMessage := regexp.MustCompile(`Merge pull request`)
+
 	eventMap := map[string]Event{}
 	for _, e := range events {
 		switch e.Type {
@@ -123,7 +126,7 @@ func mapEvents(client api.RESTClient, events []Event) (map[string]Event, error) 
 			if err != nil {
 				return nil, err
 			}
-			if re.MatchString(commit.Commit.Message) {
+			if reMergeMessage.MatchString(commit.Commit.Message) {
 				continue
 			}
 
@@ -136,17 +139,17 @@ func mapEvents(client api.RESTClient, events []Event) (map[string]Event, error) 
 				return nil, err
 			}
 
-			ref := fmt.Sprintf("refs/heads/%s", repo.DefeaultBranch)
-			if payload.Ref != ref {
-				eventMap[payload.Ref] = e
+			branch := reRef.FindStringSubmatch(payload.Ref)[1]
+			if branch != repo.DefeaultBranch {
+				eventMap[branch] = e
 			}
 		case "CreateEvent":
 			payload := CreateEventPayload{}
 			json.Unmarshal(e.Payload, &payload)
 
-			ref := fmt.Sprintf("refs/heads/%s", payload.MasterBranch)
-			if payload.Ref != ref {
-				eventMap[payload.Ref] = e
+			branch := payload.Ref
+			if branch != payload.MasterBranch {
+				eventMap[branch] = e
 			}
 		}
 	}
@@ -154,8 +157,8 @@ func mapEvents(client api.RESTClient, events []Event) (map[string]Event, error) 
 }
 
 func getPullRequests(client api.RESTClient, events map[string]Event) ([]PullRequest, error) {
-	reRef := regexp.MustCompile("refs/heads/(.*)")
-	reRepoName := regexp.MustCompile("(.*)/(.*)")
+	reRef := regexp.MustCompile(`refs/heads/(.*)`)
+	reRepoName := regexp.MustCompile(`(.*)/(.*)`)
 
 	pulls := []PullRequest{}
 	for _, e := range events {
