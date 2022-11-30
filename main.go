@@ -106,8 +106,8 @@ func getEvents(client api.RESTClient, now time.Time) ([]Event, error) {
 }
 
 func mapEvents(client api.RESTClient, events []Event) (map[string]Event, error) {
-	reRef := regexp.MustCompile("refs/heads/(.*)")
-	reMergeMessage := regexp.MustCompile("Merge pull request")
+	reRef := regexp.MustCompile(`refs/heads/(.*)`)
+	reMergeMessage := regexp.MustCompile(`Merge pull request`)
 
 	eventMap := map[string]Event{}
 	for _, e := range events {
@@ -157,8 +157,8 @@ func mapEvents(client api.RESTClient, events []Event) (map[string]Event, error) 
 }
 
 func getPullRequests(client api.RESTClient, events map[string]Event) ([]PullRequest, error) {
-	reRef := regexp.MustCompile("refs/heads/(.*)")
-	reRepoName := regexp.MustCompile("(.*)/(.*)")
+	reRef := regexp.MustCompile(`refs/heads/(.*)`)
+	reRepoName := regexp.MustCompile(`(.*)/(.*)`)
 
 	pulls := []PullRequest{}
 	for _, e := range events {
