@@ -105,6 +105,7 @@ func getEvents(client api.RESTClient, now time.Time) ([]Event, error) {
 }
 
 func mapEvents(client api.RESTClient, events []Event) (map[string]Event, error) {
+	re := regexp.MustCompile("Merge pull request")
 	eventMap := map[string]Event{}
 	for _, e := range events {
 		switch e.Type {
@@ -112,11 +113,25 @@ func mapEvents(client api.RESTClient, events []Event) (map[string]Event, error) 
 			payload := PushEventPayload{}
 			json.Unmarshal(e.Payload, &payload)
 
+			// Ignore merge commit
+			commit := struct {
+				Commit struct {
+					Message string
+				}
+			}{}
+			err := client.Get(fmt.Sprintf("repos/%s/commits/%s", e.Repo.Name, payload.Head), &commit)
+			if err != nil {
+				return nil, err
+			}
+			if re.MatchString(commit.Commit.Message) {
+				continue
+			}
+
 			// Get default branch from repository of event
 			repo := struct {
 				DefeaultBranch string `json:"default_branch"`
 			}{}
-			err := client.Get(fmt.Sprintf("repos/%s", e.Repo.Name), &repo)
+			err = client.Get(fmt.Sprintf("repos/%s", e.Repo.Name), &repo)
 			if err != nil {
 				return nil, err
 			}
