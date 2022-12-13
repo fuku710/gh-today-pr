@@ -76,7 +76,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		s.Stop()
-		color.Gray.Printf("[%d/%d/%d]\n", now.Year(), now.Month(), now.Day())
+		color.Cyan.Printf("[%d/%d/%d] \n", now.Year(), now.Month(), now.Day())
 
 		if len(pulls) == 0 {
 			color.Danger.Println("No Pull Requests")
@@ -86,7 +86,7 @@ var rootCmd = &cobra.Command{
 			if noTitle {
 				fmt.Printf("%s\n", p.HtmlUrl)
 			} else {
-				fmt.Printf("%s(%s)\n", p.Title, p.HtmlUrl)
+				fmt.Printf("%s\n |- %s\n\n", p.Title, p.HtmlUrl)
 			}
 		}
 	},
