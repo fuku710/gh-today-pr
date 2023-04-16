@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"regexp"
+	"sort"
 	"time"
 
 	"github.com/briandowns/spinner"
@@ -39,8 +40,9 @@ type CreateEventPayload struct {
 }
 
 type PullRequest struct {
-	Title   string
-	HtmlUrl string `json:"html_url"`
+	Title     string
+	HtmlUrl   string `json:"html_url"`
+	CreatedAt string `json:"created_at"`
 }
 
 var noTitle bool
@@ -74,6 +76,8 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
+
+		pulls = SortPullRequests(pulls)
 
 		s.Stop()
 		color.Cyan.Printf("[%d/%d/%d] \n", now.Year(), now.Month(), now.Day())
@@ -220,6 +224,15 @@ func getPullRequests(client api.RESTClient, events map[string]Event) ([]PullRequ
 }
 
 func IsToday(now time.Time, target time.Time) bool {
-	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
+	today := time.Date(now.Year(), now.Month(), now.Day()-5, 0, 0, 0, 0, time.Local)
 	return !target.Before(today)
+}
+
+func SortPullRequests(pulls []PullRequest) []PullRequest {
+	sort.Slice(pulls, func(i, j int) bool {
+		a, _ := time.Parse(time.RFC3339, pulls[i].CreatedAt)
+		b, _ := time.Parse(time.RFC3339, pulls[j].CreatedAt)
+		return a.Before(b)
+	})
+	return pulls
 }
