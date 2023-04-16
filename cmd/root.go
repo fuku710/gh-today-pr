@@ -224,7 +224,7 @@ func getPullRequests(client api.RESTClient, events map[string]Event) ([]PullRequ
 }
 
 func IsToday(now time.Time, target time.Time) bool {
-	today := time.Date(now.Year(), now.Month(), now.Day()-5, 0, 0, 0, 0, time.Local)
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
 	return !target.Before(today)
 }
 
