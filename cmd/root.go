@@ -10,8 +10,7 @@ import (
 	"time"
 
 	"github.com/briandowns/spinner"
-	"github.com/cli/go-gh"
-	"github.com/cli/go-gh/pkg/api"
+	"github.com/cli/go-gh/v2/pkg/api"
 	"github.com/gookit/color"
 	"github.com/spf13/cobra"
 )
@@ -57,7 +56,7 @@ var rootCmd = &cobra.Command{
 
 		now := time.Now()
 
-		client, err := gh.RESTClient(nil)
+		client, err := api.DefaultRESTClient()
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -107,7 +106,7 @@ func init() {
 	rootCmd.Flags().BoolVar(&noTitle, "no-title", false, "no display title")
 }
 
-func getEvents(client api.RESTClient, now time.Time) ([]Event, error) {
+func getEvents(client *api.RESTClient, now time.Time) ([]Event, error) {
 	user := struct{ Login string }{}
 	err := client.Get("user", &user)
 	if err != nil {
@@ -140,7 +139,7 @@ func getEvents(client api.RESTClient, now time.Time) ([]Event, error) {
 	return events, nil
 }
 
-func mapEvents(client api.RESTClient, events []Event) (map[string]Event, error) {
+func mapEvents(client *api.RESTClient, events []Event) (map[string]Event, error) {
 	reRef := regexp.MustCompile(`refs/heads/(.*)`)
 	reMergeMessage := regexp.MustCompile(`Merge pull request`)
 
@@ -191,7 +190,7 @@ func mapEvents(client api.RESTClient, events []Event) (map[string]Event, error) 
 	return eventMap, nil
 }
 
-func getPullRequests(client api.RESTClient, events map[string]Event) ([]PullRequest, error) {
+func getPullRequests(client *api.RESTClient, events map[string]Event) ([]PullRequest, error) {
 	reRef := regexp.MustCompile(`refs/heads/(.*)`)
 	reRepoName := regexp.MustCompile(`(.*)/(.*)`)
 
